@@ -348,18 +348,17 @@ mod tests {
         let b = Vln::from(&[13414u32][..]);
         assert_eq!(a - b, Vln::new(&[121403u32]));
 
-        let a = Vln::from(&[134817u32][..]);
-        let b = Vln::from(&[13414u32][..]);
-        assert_eq!(a - b, Vln::new(&[121403u32]));
+        let a = Vln::from(&[2896410004u32, 1u32][..]);
+        let b = Vln::from(&[3905672818u32][..]);
+        assert_eq!(a - b, Vln::new(&[18446744072700288802u64]));
 
+        let a = Vln::from(&[0, 2896410004u32, 1u32][..]);
+        let b = Vln::from(&[0, 3905672818u32][..]);
+        assert_eq!(a - b, Vln::new(&[0, 18446744072700288802u64]));
 
-        let a = Vln::new(&[u64::MAX, u64::MAX, u64::MAX]);
-        let b = Vln::new(&[0u8, 0u8, 0u8, 1u8]);
-        assert_eq!(b, a + 1u8);
-
-        let a = Vln::new(&[u64::MAX, u64::MAX, u64::MAX, 0xf]);
-        let b = Vln::new(&[0u8, 0u8, 0u8, 0x10u8]);
-        assert_eq!(b, a + 1u8);
+        let a = Vln::from(&[2896410004u32, 0, 1u32][..]);
+        let b = Vln::from(&[3905672818u32][..]);
+        assert_eq!(a - b, Vln::new(&[18446744072700288802u64, u64::MAX, 0]));
     }
 
     #[test]
