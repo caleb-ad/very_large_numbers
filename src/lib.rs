@@ -6,7 +6,7 @@ struct Vln {
     value: Vec<u64>
 }
 
-
+#[allow(dead_code)]
 impl Vln {
     pub fn new<T: Into<u64> + Clone>(vals: &[T]) -> Self {
         vals.into()
@@ -29,18 +29,18 @@ impl Vln {
     }
 
     //TODO
-    pub fn to_dec_str(&self) -> String {
-        let mut rep = String::new();
-        // let mut carry = 0;
-        // for digit in 0..self.value.len() {
-        //     for hex_idx in 0..16 {
-        //         let hex_digit = TryInto::<u8>::try_into((self.value[digit] & (0xf << hex_idx)) >> hex_idx).expect("");
-        //         carry += hex_digit;
-        //         rep.push(1 % 9 + 0x30);
-        //     }
-        // }
-        rep
-    }
+    // pub fn to_dec_str(&self) -> String {
+    //     let mut rep = String::new();
+    //     // let mut carry = 0;
+    //     // for digit in 0..self.value.len() {
+    //     //     for hex_idx in 0..16 {
+    //     //         let hex_digit = TryInto::<u8>::try_into((self.value[digit] & (0xf << hex_idx)) >> hex_idx).expect("");
+    //     //         carry += hex_digit;
+    //     //         rep.push(1 % 9 + 0x30);
+    //     //     }
+    //     // }
+    //     rep
+    // }
 
     //* The 'indexed_*' functions will be called alot, can it be faster? */
     fn indexed_add(&mut self, mut idx: usize, val: u64) {
