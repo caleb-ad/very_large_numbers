@@ -8,6 +8,9 @@ struct Vln {
 
 #[allow(dead_code)]
 impl Vln {
+
+    /// if 'vals = [a0, a1, a2,...an]' then the resulting Vln represents the
+    /// value 'a0 + a1*(2^64) + a2 * (2^(2*64)) + ... + an * (2^(n*64))'
     pub fn new<T: Into<u64> + Clone>(vals: &[T]) -> Self {
         vals.into()
     }
@@ -330,6 +333,26 @@ mod tests {
 
     #[test]
     fn test_add_eq() {
+        let a = Vln::new(&[u64::MAX, u64::MAX, u64::MAX]);
+        let b = Vln::new(&[0u8, 0u8, 0u8, 1u8]);
+        assert_eq!(b, a + 1u8);
+
+        let a = Vln::new(&[u64::MAX, u64::MAX, u64::MAX, 0xf]);
+        let b = Vln::new(&[0u8, 0u8, 0u8, 0x10u8]);
+        assert_eq!(b, a + 1u8);
+    }
+
+    #[test]
+    fn test_sub() {
+        let a = Vln::from(&[134817u32][..]);
+        let b = Vln::from(&[13414u32][..]);
+        assert_eq!(a - b, Vln::new(&[121403u32]));
+
+        let a = Vln::from(&[134817u32][..]);
+        let b = Vln::from(&[13414u32][..]);
+        assert_eq!(a - b, Vln::new(&[121403u32]));
+
+
         let a = Vln::new(&[u64::MAX, u64::MAX, u64::MAX]);
         let b = Vln::new(&[0u8, 0u8, 0u8, 1u8]);
         assert_eq!(b, a + 1u8);
