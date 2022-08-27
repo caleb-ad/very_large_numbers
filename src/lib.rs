@@ -1,8 +1,8 @@
 use std::ops::{Add, Sub, Mul, AddAssign, SubAssign, MulAssign, ShlAssign, ShrAssign, Deref, DerefMut};
 
-//TODO: u64 can be replaced with a generic type
+//TODO: u64 can be replaced with a generic type probably?
 #[derive(Debug, Clone)]
-struct Vln {
+pub struct Vln {
     value: Vec<u64>
 }
 
@@ -131,6 +131,7 @@ impl Vln {
     // a = [1, 3, 4, 1]
     // b = [3, 1, 1, 2]
     //TODO lots of new Vln's are created, implicitly and explicitly, probably are inneficant
+    //*use splices and splits instead of creating new Vln's
     //TODO writing without recursion may also speed up
     //*With Very-very-very large numbers we may hit a recursion limit
     fn mul_karatsuba(a: &Vln, b: &Vln) -> Vln {
