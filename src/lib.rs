@@ -275,11 +275,15 @@ impl<T: Into<u64>> MulAssign<T> for Vln {
     }
 }
 
-// TODO, following zeros shouldn't cause inequality
 impl PartialEq for Vln {
     fn eq(&self, other: &Self) -> bool {
-        for (a, b) in self.iter().zip(other.iter()) {
-            if a != b {return false;}
+        let (long, short) = if self.len() > other.len() {(self, other)} else {(other, self)};
+        for idx in 0..long.len() {
+            if idx < short.len() {
+                if long[idx] != short[idx] {return false;}
+            } else {
+                if long[idx] != 0 {return false;}
+            }
         }
         true
     }
