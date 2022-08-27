@@ -416,6 +416,16 @@ mod tests {
     }
 
     #[test]
+    fn test_mul_assign() {
+        let mut a = Vln::new(&[1u8]);
+        let factorial = [1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200];
+        for idx in 0..factorial.len() {
+            a *= TryInto::<u64>::try_into(idx + 1).unwrap();
+            assert_eq!(a[0], factorial[idx])
+        }
+    }
+
+    #[test]
     fn test_mul_karatsuba() {
         let a = Vln::new(&[0u64, 1u64]);
         let b = Vln::new(&[0u64, 0u64, 1u64]);
