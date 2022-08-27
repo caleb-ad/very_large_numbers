@@ -258,7 +258,7 @@ impl Mul for &Vln {
 
 impl MulAssign<&Self> for Vln {
     fn mul_assign(&mut self, rhs: &Self) {
-        *self = self as &Vln * rhs;
+        *self = self as &Vln * rhs; //This can be improved
     }
 }
 
@@ -266,13 +266,13 @@ impl<T: Into<u64>> Mul<T> for Vln {
     type Output = Vln;
 
     fn mul(self, rhs: T) -> Self::Output {
-        &self + &self.indexed_mul(0, rhs.into())
+        self.indexed_mul(0, rhs.into())
     }
 }
 
 impl<T: Into<u64>> MulAssign<T> for Vln {
     fn mul_assign(&mut self, rhs: T) {
-        *self += &self.indexed_mul(0, rhs.into());
+        *self = self.indexed_mul(0, rhs.into());
     }
 }
 
