@@ -94,20 +94,44 @@ impl Vln {
         temp
     }
 
+    /// returns (a0, a1) which represents the value, 'a0 + a1*2^64'
+    /// should recurse at most twice
+    #[inline]
     fn mul_64(lhs: u64, rhs: u64) -> (u64, u64) {
         let a1 = lhs >> 32; //a1 < 2^32
         let a0 = lhs & 0xffffffff; //a2 < 2^32
         let b1 = rhs >> 32; //b1 < 2^32
         let b0 = rhs & 0xffffffff; //b2 < 2^32
-        let a1b1 = a1 * b1;
         let a0b0 = a0 * b0;
-        let a0b1_b0a1 = (a0 + b1) * (b0 + a1) - a1b1 - a0b0;
-        (a1b1 + a0b1_b0a1 >> 32, a0b0 + a0b1_b0a1 << 32)
+        let a1b1 = a1 * b1;
+        let a0b1_b0a1 = if a1 == 0 || b1 == 0 {
+            a0 * b1 + b0 * a1
+        } else {
+            let a0b1_b0a1 = Vln::sub_64(Vln::sub_64(Vln::mul_64(a1 + a0, b1 + b0), a1b1), a0b0);
+            debug_assert!(a0b1_b0a1.1 == 0);
+            a0b1_b0a1.0
+        };
+        match a0b0.overflowing_add(a0b1_b0a1 << 32) {
+            (val, true) => (val, a1b1 + (a0b1_b0a1 >> 32) + 1),
+            (val, false) => (val, a1b1 + (a0b1_b0a1 >> 32)),
+        }
+    }
+
+    #[inline]
+    fn sub_64(mut lhs: (u64, u64), rhs: u64) -> (u64, u64){
+        let mut over;
+        (lhs.0, over) = lhs.0.overflowing_sub(rhs);
+        if over {
+            (lhs.1, over) = lhs.0.overflowing_sub(1);
+            if over {panic!("attempt to sub_64 with overflow");}
+        }
+        lhs
     }
 
     // a = [1, 3, 4, 1]
     // b = [3, 1, 1, 2]
     //TODO lots of new Vln's are created, implicitly and explicitly, probably are inneficant
+    //TODO writing without recursion may also speed up
     //*With Very-very-very large numbers we may hit a recursion limit
     fn mul_karatsuba(a: &Vln, b: &Vln) -> Vln {
         //base case
@@ -121,19 +145,22 @@ impl Vln {
         let mid = rhs.len() / 2;
         let a1 = Vln::new(&rhs[mid..]);
         let a0 = Vln::new(&rhs[..mid]);
-        let (b0, b1) =
-            if mid <= lhs.len() {(Vln::new(&lhs[..mid]), Vln::new(&lhs[mid..]))}
-            else {(Vln::new(&lhs[..]), Vln{value: Vec::new()})};
-
-
-        let ll = Vln::mul_karatsuba(&a0, &b0);
-        let mut hh = Vln::mul_karatsuba(&a1, &b1);
-        let mut lh = &Vln::mul_karatsuba(&(a1 + a0), &(b1 + b0)) - &(&ll + &hh);
-
-        hh <<= mid * 2;
-        lh <<= mid;
-
-        hh + lh + ll
+        if mid < lhs.len() {
+            let (b0, b1) = (Vln::new(&lhs[..mid]), Vln::new(&lhs[mid..]));
+            let ll = Vln::mul_karatsuba(&a0, &b0);
+            let mut hh = Vln::mul_karatsuba(&a1, &b1);
+            let mut lh = &Vln::mul_karatsuba(&(a1 + a0), &(b1 + b0)) - &(&ll + &hh);
+            hh <<= mid * 2;
+            lh <<= mid;
+            hh + lh + ll
+        }
+        else {
+            let b0 = Vln::new(&lhs[..]);
+            let ll = Vln::mul_karatsuba(&a0, &b0);
+            let mut lh = &Vln::mul_karatsuba(&(a1 + a0), &b0) - &ll;
+            lh <<= mid;
+            lh + ll
+        }
     }
 }
 
@@ -248,6 +275,7 @@ impl<T: Into<u64>> MulAssign<T> for Vln {
     }
 }
 
+// TODO, following zeros shouldn't cause inequality
 impl PartialEq for Vln {
     fn eq(&self, other: &Self) -> bool {
         for (a, b) in self.iter().zip(other.iter()) {
@@ -259,11 +287,15 @@ impl PartialEq for Vln {
 
 impl<T: TryInto<usize>> ShlAssign<T> for Vln {
     fn shl_assign(&mut self, rhs: T) {
+        //investigate more efficient ways to do this
         let rhs_size = rhs.try_into().ok().unwrap();
+        let current_len = self.value.len();
         if self.value.capacity() < self.value.len() + rhs_size {
             self.value.resize(self.len() + rhs_size, 0);
         }
-        self.value.copy_within(0..rhs_size, rhs_size);
+        self.value.copy_within(0..current_len, rhs_size);
+        let (start, _) = self.value.split_at_mut(rhs_size);
+        start.fill(0);
     }
 }
 
@@ -376,5 +408,22 @@ mod tests {
         let b = Vln::new(&[0xeeeeeeeeeeeeu64, 0u64, 1u64]);
         let c = Vln::new(&[0xEEED111111111112u64, 0xEEEEEEEEu64, 0xffffffffffffu64, 0u64, 0u64]);
         assert_eq!(&a * &b, c);
+    }
+
+    #[test]
+    fn test_mul_karatsuba() {
+        let a = Vln::new(&[0u64, 1u64]);
+        let b = Vln::new(&[0u64, 0u64, 1u64]);
+        assert_eq!(Vln::mul_karatsuba(&a, &a), b);
+
+        let a = Vln::new(&[0u64, 1u64]);
+        let b = Vln::new(&[1u64, 0u64, 1u64]);
+        let c = Vln::new(&[0u64, 1u64, 0u64, 1u64]);
+        assert_eq!(Vln::mul_karatsuba(&a, &b), c);
+
+        let a = Vln::new(&[0xffffffffffffu64, 0u64]);
+        let b = Vln::new(&[0xeeeeeeeeeeeeu64, 0u64, 1u64]);
+        let c = Vln::new(&[0xEEED111111111112u64, 0xEEEEEEEEu64, 0xffffffffffffu64, 0u64, 0u64]);
+        assert_eq!(Vln::mul_karatsuba(&a, &b), c);
     }
 }
